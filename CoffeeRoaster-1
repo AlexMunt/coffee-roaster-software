@@ -1,0 +1,68 @@
+#include <PID_v1.h>
+
+#define PIN_INPUT 0
+#define PIN_OUTPUT 3
+
+
+double Setpoint, Input, Output;   //Define Variables of the PID
+double Kp=5, Ki=5, Kd=1;          //Specify the links and initial tuning parameters
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
+char rx_byte = 0;
+String rx_str = "";
+boolean not_number = false;
+int result;
+
+int x; 
+
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("Set the temperature of the Roaster");
+    // x= result;
+   // Input = analogRead(PIN_INPUT);    //initialize the variables we're linked to
+   // Setpoint =x ;
+   // myPID.SetMode(AUTOMATIC);         //turn the PID on
+}
+
+  
+void loop() {
+  if (Serial.available() > 0) {    // is a character available?
+    rx_byte = Serial.read();       // get the character
+    
+    if ((rx_byte >= '0') && (rx_byte <= '9')) {
+      rx_str += rx_byte;
+    }
+    else if (rx_byte == '\n') {   // end of string
+      if (not_number) {
+        Serial.println("Not a number");
+      }
+      else {
+        
+        result = rx_str.toInt();      // print the result 
+        Serial.print(" SetTemp = ");  // Serial.print(rx_str);
+        Serial.print(result);
+        Serial.println("C");      //Serial.println("Set the temperature of the Roaster");
+      }
+      not_number = false;         // reset flag
+      rx_str = "";                // clear the string for reuse
+    }
+    else {                    // non-number character received
+      not_number = true;      // flag a non-number
+    }
+  } // end: if (Serial.available() > 0)
+   x= result;
+    Input = analogRead(PIN_INPUT);    //initialize the variables we're linked to
+    Setpoint =x ;
+    myPID.SetMode(AUTOMATIC);         //turn the PID on
+    Input = analogRead(PIN_INPUT);
+  myPID.Compute();
+  analogWrite(PIN_OUTPUT, Output);
+  Serial.print ("Set Temp:");
+  Serial.println (result);
+  Serial.print ("Mesured Temperature:");
+  Serial.print (Input);
+  Serial.print ("Real Temperature:");
+  Serial.println (Output);
+  delay (1000);
+}
