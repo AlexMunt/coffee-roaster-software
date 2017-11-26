@@ -1,0 +1,117 @@
+// This is the basic un
+#include <PID_v1.h>
+  #define PIN_INPUT 0
+  #define PIN_OUTPUT 3
+  
+#include <LiquidCrystal.h>
+  LiquidCrystal lcd(7,8,9,10,11,12);
+#include <max6675.h>
+       int thermoDO = 4;
+       int thermoCS = 5;
+       int thermoCLK = 6;
+   MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);
+int potPin1 = A0;
+int potPin2 = A1;
+
+    //Defining PID 
+double Setpoint, Input, Output;   //Define Variables we'll be connecting to
+double Kp=10, Ki=5, Kd=1;          //Specify the links and initial tuning parameters
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
+char rx_byte = 0;
+String rx_str = "";
+boolean not_number = false;
+int result;
+
+int x;
+
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("Set the temperature of the Roaster");
+    // x= result;
+   // Input = analogRead(PIN_INPUT);    //initialize the variables we're linked to
+   // Setpoint =x ;
+   // myPID.SetMode(AUTOMATIC);         //turn the PID on
+  Serial.println("MAX6675 test");
+  // wait for MAX chip to stabilize
+  delay(500);
+lcd.begin(16, 2);
+lcd.clear();
+
+pinMode(potPin1, INPUT);
+pinMode(potPin2, INPUT);
+
+}
+
+  
+void loop() {
+  if (Serial.available() > 0) {    // is a character available?
+    rx_byte = Serial.read();       // get the character
+    
+    if ((rx_byte >= '0') && (rx_byte <= '9')) {
+      rx_str += rx_byte;
+    }
+    else if (rx_byte == '\n') {   // end of string
+      if (not_number) {
+        Serial.println("Not a number");
+      }
+      else {
+        
+        result = rx_str.toInt();      // print the result 
+        Serial.print(" SetTemp = ");  // Serial.print(rx_str);
+        Serial.print(result);
+        Serial.println("C");      //Serial.println("Set the temperature of the Roaster");
+      }
+      not_number = false;         // reset flag
+      rx_str = "";                // clear the string for reuse
+    }
+    else {                    // non-number character received
+      not_number = true;      // flag a non-number
+    }
+  } // end: if (Serial.available() > 0)
+   x= result;
+   
+    Input = thermocouple.readCelsius();    //initialize the variables we're linked to
+    Setpoint =x ;
+    myPID.SetMode(AUTOMATIC);         //turn the PID on
+    Input = thermocouple.readCelsius();
+  myPID.Compute();
+  analogWrite(PIN_OUTPUT, Output);
+  Serial.print ("Set Temp:");
+  Serial.print (result);
+  Serial.println ("C");
+  Serial.print ("Potenciometer Temp:");
+  Serial.print (Input);
+  Serial.print ("C    ");
+  Serial.print ("Power Heat:");
+       int val = Output;
+       val = map(val, 0, 255, 0, 100);
+       analogWrite(9, val);
+       Serial.print (val);
+       Serial.println ("%");
+       
+        Serial.print("Roaster Temp = "); 
+        Serial.print(thermocouple.readCelsius());
+        Serial.println ("C");
+       // Serial.print("\t Deg F = ");
+       //Serial.println(thermocouple.readFahrenheit());
+
+ 
+  lcd.setCursor(0,0); // Sets the cursor to col 0 and row 0
+  lcd.print("POT:"); // Prints Sensor Val: to LCD
+  lcd.print(analogRead(potPin1)); // Prints value on Potpin1 to LCD
+  lcd.print("C");
+  lcd.print("/SET:");
+  lcd.print(result);
+  lcd.print("C");
+  lcd.setCursor(0,1); // Sets the cursor to col 1 and row 0
+  lcd.print("Heat:"); // Prints Sensor Val: to LCD
+lcd.print(val); // Prints value on Potpin1 to LCD
+lcd.print("%");
+        lcd.print("R = "); 
+        lcd.print(thermocouple.readCelsius());
+        lcd.println ("C");
+
+ delay (1000);
+}
